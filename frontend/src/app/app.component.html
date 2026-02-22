@@ -1,0 +1,72 @@
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">C</div>
+    <div class="brand-text">
+      <h1><p>Customer Management Dashboard</p></h1>
+    </div>
+  </div>
+  <div class="navbar-status">
+    <div class="status-dot"></div>
+    System Online
+  </div>
+</nav>
+
+<div class="main">
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total Customers</div>
+      <div class="stat-value">{{ customers.length }}</div>
+      <div class="stat-sub">registered accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active</div>
+      <div class="stat-value">{{ customers.length }}</div>
+      <div class="stat-sub">100% active rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Added</div>
+      <div class="stat-value" style="font-size:1rem; padding-top:6px;">
+        {{ customers.length > 0 ? customers[customers.length-1].name : '—' }}
+      </div>
+      <div class="stat-sub">Today</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <h2>Customer List</h2>
+        <p>Manage and track your customers</p>
+      </div>
+      <div class="header-badge">● LIVE</div>
+    </div>
+
+    <div class="add-form">
+      <div class="input-wrapper">
+        <span class="input-icon">👤</span>
+        <input [(ngModel)]="newCustomer.name" type="text" placeholder="Full Name" />
+      </div>
+      <div class="input-wrapper">
+        <span class="input-icon">✉</span>
+        <input [(ngModel)]="newCustomer.email" type="email" placeholder="Email Address" />
+      </div>
+      <button class="btn-add" (click)="addCustomer()">+ Add Customer</button>
+    </div>
+
+    <ul class="customer-list">
+      <li class="customer-item" *ngFor="let customer of customers">
+        <div class="customer-info">
+          <div class="avatar">{{ customer.name?.charAt(0)?.toUpperCase() }}</div>
+          <div class="customer-details">
+            <div class="customer-name">{{ customer.name }}</div>
+            <div class="customer-email">{{ customer.email }}</div>
+            <div class="customer-tag">CLIENT</div>
+          </div>
+        </div>
+        <button class="btn-delete" (click)="deleteCustomer(customer.id)">✕ Delete</button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="footer">© 2026 CRM App — Powered by <span>Angular</span></div>
+</div>
