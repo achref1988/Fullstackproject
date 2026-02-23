@@ -62,7 +62,7 @@ pipeline {
                     sh 'kubectl apply -f k8s/deployment-front.yaml'
                     sh 'kubectl rollout status deployment/frontend'
                     sh 'kubectl rollout status deployment/backend'
-                    sh /*INGRESS.YAML à faire ne pas oublier */                }
+                   /* sh INGRESS.YAML à faire ne pas oublier */                }
             }
         }
 
@@ -93,3 +93,4 @@ pipeline {
     }
 
 }
+
