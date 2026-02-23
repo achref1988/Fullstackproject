@@ -58,8 +58,8 @@ pipeline {
                     sh 'kubectl apply -f k8s/mysql-secret.yaml'
                     sh 'kubectl apply -f k8s/mysql-pvc.yaml'
                     sh 'kubectl apply -f k8s/mysql-deployment.yaml'
-                    sh 'kubectl apply -f k8s/backend-deployment.yaml'
-                    sh 'kubectl apply -f k8s/frontend-deployment.yaml'
+                    sh 'kubectl apply -f k8s/deployment-backend.yaml'
+                    sh 'kubectl apply -f k8s/deployment-front.yaml'
                     sh 'kubectl rollout status deployment/frontend'
                     sh 'kubectl rollout status deployment/backend'
                     sh /*INGRESS.YAML à faire ne pas oublier */                }
@@ -91,4 +91,5 @@ pipeline {
             sh 'docker image prune -f || true'
         }
     }
+
 }
