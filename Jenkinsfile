@@ -15,7 +15,7 @@ pipeline {
         stage('Build Backend') {
             steps {
                 dir('backend') {
-                    sh 'mvn clean package -DskipTests=true'
+                    sh 'mvn test -DskipTests=true'
                 }
             }
         }
@@ -93,4 +93,5 @@ pipeline {
     }
 
 }
+
 
