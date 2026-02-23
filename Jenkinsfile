@@ -6,7 +6,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'github',
+                    credentialsId: 'git',
                     url: 'git@github.com:achref1988/Fullstackproject.git'
                 sh 'ls -lah'
             }
@@ -93,6 +93,7 @@ pipeline {
     }
 
 }
+
 
 
 
