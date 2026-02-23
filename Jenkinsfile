@@ -14,9 +14,9 @@ pipeline {
 
         stage('Build Backend') {
             steps {
-                dir('backend') {
+               /* dir('backend') {*/
                     sh 'mvn test -DskipTests=true'
-                }
+               /* }*/
             }
         }
 
@@ -93,5 +93,6 @@ pipeline {
     }
 
 }
+
 
 
