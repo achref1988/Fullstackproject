@@ -32,8 +32,8 @@ pipeline {
             steps {
                 dir('frontend') {
                     withDockerRegistry(credentialsId: 'Dockerhub', url: "") {
-                        sh 'docker build -t achref1988/frontend:latest .'
-                        sh 'docker push achref1988/frontend:latest'
+                        sh 'docker build -t acmanso/frontend:latest .'
+                        sh 'docker push acmanso/frontend:latest'
                     }
                 }
                 sh 'docker image prune -f'
@@ -44,8 +44,8 @@ pipeline {
             steps {
                 dir('backend') {
                     withDockerRegistry(credentialsId: 'Dockerhub', url: "") {
-                        sh 'docker build -t achref1988/backend:latest .'
-                        sh 'docker push achref1988/backend:latest'
+                        sh 'docker build -t acmanso/backend:latest .'
+                        sh 'docker push acmanso/backend:latest'
                     }
                 }
                 sh 'docker image prune -f'
@@ -93,6 +93,7 @@ pipeline {
     }
 
 }
+
 
 
 
