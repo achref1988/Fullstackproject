@@ -1,29 +1,24 @@
 apiVersion: v1
-kind: Secret             
+kind: Secret
 metadata:
   name: mysql-secret
-
-type: kubernetes.io/basic-auth      
-
+type: Opaque
 data:
-  mysql-root-password: cm9vdA==     
-  mysql-user: bXlkYg==             
-  mysql-password: password1    
-
+  mysql-root-password: cm9vdA==
+  mysql-user: bXlkYg==
+  mysql-password: cGFzc3dvcmQx
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim   
+kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
-
 spec:
   accessModes:
-    - ReadWriteOnce        
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi          
-  storageClassName: gp2       
-
+      storage: 5Gi
+  storageClassName: gp2
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,71 +26,56 @@ metadata:
   name: mysql
   labels:
     app: mysql
-
 spec:
-  replicas: 1                                               
-
+  replicas: 1
   selector:
     matchLabels:
       app: mysql
-
   template:
     metadata:
       labels:
         app: mysql
-
     spec:
       containers:
         - name: mysql
-          image: mysql:5.6   
-
+          image: mysql:5.6
           ports:
-            - containerPort: 3306    
-
+            - containerPort: 3306
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-root-password
-
             - name: MYSQL_DATABASE
-              value: "mydb"         
-
+              value: "mydb"
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-user
-
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-password
-
-         
           volumeMounts:
             - name: mysql-storage
-              mountPath: /var/lib/mysql    
-
-          volumes:
-            - name: mysql-storage
-              persistentVolumeClaim:
-                claimName: mysql-pvc         
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-service       
-
+  name: mysql-service
 spec:
   selector:
     app: mysql
-
   ports:
     - protocol: TCP
       port: 3306
       targetPort: 3306
-
-  type: ClusterIP            
+  type: ClusterIP
