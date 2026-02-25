@@ -8,18 +8,6 @@ data:
   mysql-user: bXlkYg==
   mysql-password: cGFzc3dvcmQx
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: gp2
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,8 +53,9 @@ spec:
       volumes:
         - name: mysql-storage
           hostPath:
-            path: /data/mysql  
+            path: /data/mysql
             type: DirectoryOrCreate
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -79,4 +68,3 @@ spec:
       port: 3306
       targetPort: 3306
   type: ClusterIP
-
