@@ -14,6 +14,10 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.28
+          command: ['sh', '-c', 'until nc -z mysql-service 3306; do echo "Attente MySQL..."; sleep 2; done; echo "MySQL pret !"']
       containers:
         - name: backend
           image: acmanso/backend:latest
@@ -40,8 +44,8 @@ metadata:
 spec:
   selector:
     app: backend
-  ports:          # ← 2 espaces
+  ports:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-  type: ClusterIP # ← 2 espaces
+  type: ClusterIP
