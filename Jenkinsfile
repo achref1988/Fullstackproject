@@ -56,8 +56,9 @@ pipeline {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
                     sh 'kubectl apply -f k8s/mysql-secret.yaml'
-                   /* sh 'kubectl apply -f k8s/mysql-pvc.yaml'*/
                     sh 'kubectl apply -f k8s/mysql-deployment.yaml'
+                    sh "sed -i 's|acmanso/frontend:.*|acmanso/frontend:${BUILD_NUMBER}|' k8s/deployment-front.yaml"
+                    sh "sed -i 's|acmanso/backend:.*|acmanso/backend:${BUILD_NUMBER}|' k8s/deployment-backend.yaml"
                     sh 'kubectl apply -f k8s/deployment-backend.yaml'
                     sh 'kubectl apply -f k8s/deployment-front.yaml'
                     sh 'kubectl rollout status deployment/frontend'
@@ -93,6 +94,7 @@ pipeline {
     }
 
 }
+
 
 
 
