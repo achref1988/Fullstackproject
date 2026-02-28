@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: frontend                    
-          image: acmanso/frontend:latest
-         
+          image: acmanso/frontend:${BUILD_NUMBER}
+        
           ports:
             - containerPort: 80           
 
