@@ -1,8 +1,6 @@
 pipeline {
     agent any
-
     stages {
-
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
@@ -11,15 +9,13 @@ pipeline {
                 sh 'ls -lah'
             }
         }
-
         stage('Build Backend') {
             steps {
                dir('backend') {
-                    sh 'mvn test -DskipTests=true'
+                    sh 'mvn clean package -DskipTests=true'
                }
             }
         }
-
         stage('Test Backend') {
             steps {
                 dir('backend') {
@@ -27,7 +23,13 @@ pipeline {
                 }
             }
         }
-
+        stage('Deploy to Nexus') {
+            steps {
+                dir('backend') {
+                    sh 'mvn deploy -DskipTests=true -s /etc/maven/settings.xml'
+                }
+            }
+        }
         stage('Docker Build & Push Frontend') {
             steps {
                 dir('frontend') {
@@ -39,7 +41,6 @@ pipeline {
                 sh 'docker image prune -f'
             }
         }
-
         stage('Docker Build & Push Backend') {
             steps {
                 dir('backend') {
@@ -51,7 +52,6 @@ pipeline {
                 sh 'docker image prune -f'
             }
         }
-
         stage('Deploy to Kubernetes') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
@@ -63,10 +63,9 @@ pipeline {
                     sh 'kubectl apply -f k8s/deployment-front.yaml'
                     sh 'kubectl rollout status deployment/frontend'
                     sh 'kubectl rollout status deployment/backend'
-                   /* sh INGRESS.YAML à faire ne pas oublier */                }
+                }
             }
         }
-
         stage('Verification') {
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig']) {
@@ -76,7 +75,6 @@ pipeline {
             }
         }
     }
-
     post {
         success {
             echo 'Déploiement réussi !'
@@ -92,16 +90,4 @@ pipeline {
             sh 'docker image prune -f || true'
         }
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
