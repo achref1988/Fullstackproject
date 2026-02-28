@@ -23,7 +23,7 @@ spec:
             - until nc -z mysql-service 3306; do echo "Attente MySQL..."; sleep 2; done; echo "MySQL pret !"
       containers:
         - name: backend
-          image: acmanso/backend:${BUILD_NUMBER}
+          image: acmanso/backend:latest
           ports:
             - containerPort: 8080
           env:
