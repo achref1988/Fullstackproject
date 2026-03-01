@@ -27,7 +27,7 @@ pipeline {
             steps {
                 dir('backend') {
                     withSonarQubeEnv('sonarqube') {
-                        sh 'mvn sonar:sonar -Dsonar.projectKey=fullstackproject -Dsonar.projectName=Fullstackproject -s /etc/maven/settings.xml'
+                        sh 'mvn sonar:sonar -Dsonar.projectKey=fullstackproject -Dsonar.projectName=fullstackproject -s /etc/maven/settings.xml'
                     }
                 }
             }
@@ -107,3 +107,4 @@ pipeline {
         }
     }
 }
+
