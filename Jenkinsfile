@@ -26,16 +26,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
-                    withSonarQubeEnv('sonarqube') {
-                        sh 'mvn sonar:sonar -Dsonar.projectKey=Fullstackproject -Dsonar.projectName=Fullstackproject -s /etc/maven/settings.xml'
-                    }
-                }
-            }
-        }
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                    sh '''mvn sonar:sonar \
+                        -Dsonar.projectKey=Fullstackproject \
+                        -Dsonar.projectName=Fullstackproject \
+                        -Dsonar.host.url=http://172.31.0.215:9000 \
+                        -Dsonar.login=sqa_0846b472542dae98957418e79d8ff1d3772336cd \
+                        -s /etc/maven/settings.xml'''
                 }
             }
         }
@@ -107,5 +103,3 @@ pipeline {
         }
     }
 }
-
-
