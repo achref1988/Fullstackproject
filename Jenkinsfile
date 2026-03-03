@@ -95,16 +95,16 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nexus') {
+        stage('Deploy to Nexus Backend') {
             steps {
                 script {
                     try {
                         dir('backend') {
                             sh 'mvn deploy -DskipTests=true -s /etc/maven/settings.xml'
                         }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Nexus', 'SUCCESS')
+                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusBack', 'SUCCESS')
                     } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Nexus', 'FAILED')
+                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusBack', 'FAILED')
                         throw e
                     }
                 }
@@ -125,6 +125,41 @@ pipeline {
                         currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'SUCCESS')
                     } catch (Exception e) {
                         currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'FAILED')
+                        throw e
+                    }
+                }
+            }
+        }
+
+        stage('Upload Frontend to Nexus') {
+            steps {
+                script {
+                    try {
+                        dir('frontend') {
+                            sh 'npm install'
+                            sh 'npm run build'
+                            sh "zip -r frontend-${BUILD_NUMBER}.zip dist/"
+                        }
+                        nexusArtifactUploader(
+                            nexusVersion: 'nexus3',
+                            protocol: 'http',
+                            nexusUrl: '172.31.0.215:8081',
+                            repository: 'frontend-raw',
+                            credentialsId: 'Nexus',
+                            groupId: 'com.devops',
+                            version: "0.0.1-${BUILD_NUMBER}",
+                            artifacts: [
+                                [
+                                    artifactId: 'frontend',
+                                    classifier: '',
+                                    file: "frontend/frontend-${BUILD_NUMBER}.zip",
+                                    type: 'zip'
+                                ]
+                            ]
+                        )
+                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'SUCCESS')
+                    } catch (Exception e) {
+                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'FAILED')
                         throw e
                     }
                 }
@@ -213,77 +248,8 @@ pipeline {
                         ${createStageRow('Test Backend', statusMap.get('Test', 'PENDING'))}
                         ${createStageRow('SonarQube Analysis', statusMap.get('Sonar', 'PENDING'))}
                         ${createStageRow('Quality Gate', statusMap.get('Quality', 'PENDING'))}
-                        ${createStageRow('Deploy to Nexus', statusMap.get('Nexus', 'PENDING'))}
+                        ${createStageRow('Deploy to Nexus Backend', statusMap.get('NexusBack', 'PENDING'))}
                         ${createStageRow('Docker Frontend', statusMap.get('DockerFront', 'PENDING'))}
+                        ${createStageRow('Upload Frontend to Nexus', statusMap.get('NexusFront', 'PENDING'))}
                         ${createStageRow('Docker Backend', statusMap.get('DockerBack', 'PENDING'))}
-                        ${createStageRow('Deploy to Kubernetes', statusMap.get('Deploy', 'PENDING'))}
-                        ${createStageRow('Verification', statusMap.get('Verification', 'PENDING'))}
-                    </tbody>
-                </table>
-                """
-
-                def buildStatus = currentBuild.result ?: 'SUCCESS'
-                def statusIcon = buildStatus == 'SUCCESS' ? '✅' : '❌'
-
-                emailext(
-                    subject: "${statusIcon} ${buildStatus}: ${JOB_NAME} #${BUILD_NUMBER}",
-                    body: stagesTable,
-                    to: "${EMAIL_TO}",
-                    mimeType: 'text/html'
-                )
-            }
-
-            echo 'Cleaning workspace...'
-            cleanWs()
-        }
-
-        failure {
-            withKubeConfig([credentialsId: 'kubeconfig']) {
-                sh 'kubectl rollout undo deployment/frontend || true'
-                sh 'kubectl rollout undo deployment/backend || true'
-            }
-        }
-    }
-}
-
-// ==================== FONCTIONS PERSONNALISÉES ====================
-
-def updateStageStatus(String description, String stageName, String status) {
-    description = description ?: ''
-    def marker = "${stageName}:${status}"
-    description = description.replaceAll("${stageName}:(SUCCESS|FAILED|PENDING)", '')
-    description = description.replaceAll(',+', ',').replaceAll('^,|,$', '')
-    if (description) {
-        return "${description},${marker}"
-    } else {
-        return marker
-    }
-}
-
-def parseStageStatus(String description) {
-    def statusMap = [:]
-    if (!description) return statusMap
-    description.split(',').each { item ->
-        def parts = item.trim().split(':')
-        if (parts.size() == 2) statusMap[parts[0]] = parts[1]
-    }
-    return statusMap
-}
-
-def createStageRow(String stageName, String status) {
-    def color = ''
-    def icon = ''
-    switch(status) {
-        case 'SUCCESS': color='#4CAF50'; icon='✅'; break
-        case 'FAILED':  color='#f44336'; icon='❌'; break
-        case 'PENDING': color='#9E9E9E'; icon='⏳'; break
-        default: color='#9E9E9E'; icon='❓'
-    }
-    return """
-        <tr style="background-color: #f9f9f9;">
-            <td style="padding: 10px; border: 1px solid #ddd;">${stageName}</td>
-            <td style="padding: 10px; border: 1px solid #ddd; color: ${color}; font-weight: bold;">${status}</td>
-            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 20px;">${icon}</td>
-        </tr>
-    """
-}
+                        ${createStageRow('D
