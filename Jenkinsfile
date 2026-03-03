@@ -252,4 +252,74 @@ pipeline {
                         ${createStageRow('Docker Frontend', statusMap.get('DockerFront', 'PENDING'))}
                         ${createStageRow('Upload Frontend to Nexus', statusMap.get('NexusFront', 'PENDING'))}
                         ${createStageRow('Docker Backend', statusMap.get('DockerBack', 'PENDING'))}
-                        ${createStageRow('D
+                        ${createStageRow('Deploy to Kubernetes', statusMap.get('Deploy', 'PENDING'))}
+                        ${createStageRow('Verification', statusMap.get('Verification', 'PENDING'))}
+                    </tbody>
+                </table>
+                """
+
+                def buildStatus = currentBuild.result ?: 'SUCCESS'
+                def statusIcon = buildStatus == 'SUCCESS' ? '✅' : '❌'
+
+                emailext(
+                    subject: "${statusIcon} ${buildStatus}: ${JOB_NAME} #${BUILD_NUMBER}",
+                    body: stagesTable,
+                    to: "${EMAIL_TO}",
+                    mimeType: 'text/html'
+                )
+            }
+
+            echo 'Cleaning workspace...'
+            cleanWs()
+        }
+
+        failure {
+            withKubeConfig([credentialsId: 'kubeconfig']) {
+                sh 'kubectl rollout undo deployment/frontend || true'
+                sh 'kubectl rollout undo deployment/backend || true'
+            }
+        }
+    }
+}
+
+// ==================== FONCTIONS PERSONNALISÉES ====================
+
+def updateStageStatus(String description, String stageName, String status) {
+    description = description ?: ''
+    def marker = "${stageName}:${status}"
+    description = description.replaceAll("${stageName}:(SUCCESS|FAILED|PENDING)", '')
+    description = description.replaceAll(',+', ',').replaceAll('^,|,$', '')
+    if (description) {
+        return "${description},${marker}"
+    } else {
+        return marker
+    }
+}
+
+def parseStageStatus(String description) {
+    def statusMap = [:]
+    if (!description) return statusMap
+    description.split(',').each { item ->
+        def parts = item.trim().split(':')
+        if (parts.size() == 2) statusMap[parts[0]] = parts[1]
+    }
+    return statusMap
+}
+
+def createStageRow(String stageName, String status) {
+    def color = ''
+    def icon = ''
+    switch(status) {
+        case 'SUCCESS': color='#4CAF50'; icon='✅'; break
+        case 'FAILED':  color='#f44336'; icon='❌'; break
+        case 'PENDING': color='#9E9E9E'; icon='⏳'; break
+        default: color='#9E9E9E'; icon='❓'
+    }
+    return """
+        <tr style="background-color: #f9f9f9;">
+            <td style="padding: 10px; border: 1px solid #ddd;">${stageName}</td>
+            <td style="padding: 10px; border: 1px solid #ddd; color: ${color}; font-weight: bold;">${status}</td>
+            <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 20px;">${icon}</td>
+        </tr>
+    """
+}
