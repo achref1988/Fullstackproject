@@ -36,8 +36,13 @@
       command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
       ignore_errors: yes
 
-    - name: Delete unused images
-      command: docker image prune -af
+    - name: Remove old Frontend image if exists
+      command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Backend image if exists
+      command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
 
 
     - name: Build Frontend Docker image
