@@ -16,16 +16,29 @@
     - name: Login DockerHub
       command: docker login -u "{{ DOCKER_USER }}" -p "{{ DOCKER_PASS }}"
 
-    - name: Remove old Frontend image
+    - name: Stop and remove Frontend container if exists
+      docker_container:
+        name: frontend-container
+        state: absent
+      ignore_errors: yes
+
+    - name: Stop and remove Backend container if exists
+      docker_container:
+        name: backend-container
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove old Frontend image if exists
       command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
       ignore_errors: yes
 
-    - name: Remove old Backend image
+    - name: Remove old Backend image if exists
       command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
       ignore_errors: yes
 
-    - name: Prune dangling images
+    - name: Delete unused images
       command: docker image prune -af
+
 
     - name: Build Frontend Docker image
       docker_image:
@@ -47,5 +60,6 @@
     - name: Push Backend Docker image to DockerHub
       command: docker push {{ docker_image_backend }}:{{ docker_image_tag }}
 
+  
     - name: Logout DockerHub
       command: docker logout
