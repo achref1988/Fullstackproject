@@ -1,0 +1,41 @@
+---
+- name: Playbook_Continous_Delivery
+  hosts: DockerSRV
+  become: yes
+  gather_facts: no
+  
+  vars:
+    docker_image_name: "acmanso/compare-appv2"
+    docker_container_name: "compare-appv2-container"
+    docker_image_tag: "latest"
+  
+  tasks:
+  
+    - name: Login DockerHub
+      command: docker login -u "{{ DOCKER_USER }}" -p "{{ DOCKER_PASS }}"
+      
+    - name: Stop old containers
+      docker_container:
+        name: "{{ docker_container_name }}"
+        state: absent
+       
+    - name: Remove old Containers
+      docker_container:
+        name: "{{ docker_container_name }}"
+        state: absent
+          
+    - name: Remove old images
+      command: docker image prune -af
+     
+    - name: Build Docker image
+      docker_image:
+        name: "{{ docker_image_name }}:{{ docker_image_tag }}"
+        source: build
+        build: 
+          path: /opt/compare-app
+
+    - name: Push Docker image to DockerHub
+      command: docker push {{ docker_image_name }}:{{ docker_image_tag }}
+
+    - name: Logout Dockerhub
+      command: docker logout
