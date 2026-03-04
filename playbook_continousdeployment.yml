@@ -8,11 +8,9 @@
     docker_image_frontend: "acmanso/frontend"
     docker_image_backend:  "acmanso/backend"
     docker_image_tag:      "{{ IMAGE_TAG }}"
-    k8s_path:              /opt/Fullstackproject/k8s
-    kubeconfig:            /root/.kube/config
 
   tasks:
-
+  
     - name: Pull latest Frontend image
       docker_image:
         name: "{{ docker_image_frontend }}:{{ docker_image_tag }}"
@@ -22,70 +20,3 @@
       docker_image:
         name: "{{ docker_image_backend }}:{{ docker_image_tag }}"
         source: pull
-
-    - name: Apply MySQL Secret
-      command: kubectl apply -f {{ k8s_path }}/mysql-secret.yaml
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Deploy MySQL
-      command: kubectl apply -f {{ k8s_path }}/mysql-deployment.yaml
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Update Backend image tag in manifest
-      replace:
-        path: "{{ k8s_path }}/deployment-backend.yaml"
-        regexp: 'acmanso/backend:.*'
-        replace: "acmanso/backend:{{ docker_image_tag }}"
-
-    - name: Deploy Backend to Kubernetes
-      command: kubectl apply -f {{ k8s_path }}/deployment-backend.yaml
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Wait for Backend rollout
-      command: kubectl rollout status deployment/backend
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Update Frontend image tag in manifest
-      replace:
-        path: "{{ k8s_path }}/deployment-front.yaml"
-        regexp: 'acmanso/frontend:.*'
-        replace: "acmanso/frontend:{{ docker_image_tag }}"
-
-    - name: Deploy Frontend to Kubernetes
-      command: kubectl apply -f {{ k8s_path }}/deployment-front.yaml
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Wait for Frontend rollout
-      command: kubectl rollout status deployment/frontend
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Apply Ingress
-      command: kubectl apply -f {{ k8s_path }}/ingress.yaml
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-
-    - name: Get running Pods
-      command: kubectl get pods
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-      register: pods_out
-
-    - name: Show Pods
-      debug:
-        var: pods_out.stdout_lines
-
-    - name: Get Services
-      command: kubectl get services
-      environment:
-        KUBECONFIG: "{{ kubeconfig }}"
-      register: svc_out
-
-    - name: Show Services
-      debug:
-        var: svc_out.stdout_lines
