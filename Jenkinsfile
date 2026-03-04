@@ -8,7 +8,6 @@ pipeline {
 
     stages {
 
-        // ─── CHECKOUT ────────────────────────────────────────────────
         stage('Checkout Code') {
             steps {
                 script {
@@ -26,7 +25,7 @@ pipeline {
             }
         }
 
-        // ─── CI BACKEND ──────────────────────────────────────────────
+        
         stage('Build Backend') {
             steps {
                 script {
@@ -113,7 +112,7 @@ pipeline {
             }
         }
 
-        // ─── CD : DOCKER BUILD & PUSH (via Ansible) ──────────────────
+       
         stage('Continuous Delivery') {
             steps {
                 script {
@@ -141,7 +140,7 @@ pipeline {
             }
         }
 
-        // ─── CD : UPLOAD FRONTEND TO NEXUS ───────────────────────────
+        
         stage('Upload Frontend to Nexus') {
             steps {
                 script {
@@ -177,15 +176,46 @@ pipeline {
             }
         }
 
-        // ─── DEPLOY : KUBERNETES (via Ansible) ───────────────────────
+        
         stage('Continuous Deployment') {
             steps {
                 script {
                     try {
+                       
                         sh """
                             ansible-playbook -i inventory.yml playbook_continousdeployment.yml \
                                 -e "IMAGE_TAG=${IMAGE_TAG}"
                         """
+
+                 
+                        withKubeConfig([credentialsId: 'kubeconfig']) {
+
+                            // DELETE OLD DEPLOYMENTS & SERVICES
+                            sh 'kubectl delete deployment frontend            --ignore-not-found=true'
+                            sh 'kubectl delete deployment backend             --ignore-not-found=true'
+                            sh 'kubectl delete deployment mysql               --ignore-not-found=true'
+                            sh 'kubectl delete service   frontend-service     --ignore-not-found=true'
+                            sh 'kubectl delete service   backend-service      --ignore-not-found=true'
+                            sh 'kubectl delete service   mysql-service        --ignore-not-found=true'
+
+                            // WAIT FOR PODS TO TERMINATE
+                            sh 'kubectl wait --for=delete pod -l app=frontend --timeout=60s || true'
+                            sh 'kubectl wait --for=delete pod -l app=backend  --timeout=60s || true'
+                            sh 'kubectl wait --for=delete pod -l app=mysql    --timeout=60s || true'
+
+                            // DEPLOY FRESH
+                            sh 'kubectl apply -f k8s/mysql-secret.yaml'
+                            sh 'kubectl apply -f k8s/mysql-deployment.yaml'
+                            sh "sed -i 's|acmanso/frontend:.*|acmanso/frontend:${IMAGE_TAG}|' k8s/deployment-front.yaml"
+                            sh "sed -i 's|acmanso/backend:.*|acmanso/backend:${IMAGE_TAG}|'   k8s/deployment-backend.yaml"
+                            sh 'kubectl apply -f k8s/deployment-backend.yaml'
+                            sh 'kubectl apply -f k8s/deployment-front.yaml'
+                            sh 'kubectl apply -f k8s/ingress.yaml'
+
+                            // WAIT FOR ROLLOUT
+                            sh 'kubectl rollout status deployment/backend  --timeout=120s'
+                            sh 'kubectl rollout status deployment/frontend --timeout=120s'
+                        }
                         currentBuild.description = updateStageStatus(currentBuild.description, 'Deploy', 'SUCCESS')
                     } catch (Exception e) {
                         currentBuild.description = updateStageStatus(currentBuild.description, 'Deploy', 'FAILED')
@@ -195,7 +225,7 @@ pipeline {
             }
         }
 
-        // ─── VERIFICATION ─────────────────────────────────────────────
+       
         stage('Verification') {
             steps {
                 script {
@@ -214,7 +244,6 @@ pipeline {
         }
     }
 
-    // ─── POST ACTIONS ─────────────────────────────────────────────────
     post {
         always {
             script {
@@ -269,8 +298,7 @@ pipeline {
     }
 }
 
-// ==================== FONCTIONS PERSONNALISÉES ====================
-
+ 
 def updateStageStatus(String description, String stageName, String status) {
     description = description ?: ''
     def marker = "${stageName}:${status}"
