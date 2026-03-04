@@ -3,39 +3,49 @@
   hosts: DockerSRV
   become: yes
   gather_facts: no
-  
+
   vars:
-    docker_image_name: "acmanso/compare-appv2"
-    docker_container_name: "compare-appv2-container"
-    docker_image_tag: "latest"
-  
+    docker_image_frontend: "acmanso/frontend"
+    docker_image_backend:  "acmanso/backend"
+    docker_image_tag:      "{{ IMAGE_TAG }}"
+    frontend_build_path:   /opt/Fullstackproject/frontend
+    backend_build_path:    /opt/Fullstackproject/backend
+
   tasks:
-  
+
     - name: Login DockerHub
       command: docker login -u "{{ DOCKER_USER }}" -p "{{ DOCKER_PASS }}"
-      
-    - name: Stop old containers
-      docker_container:
-        name: "{{ docker_container_name }}"
-        state: absent
-       
-    - name: Remove old Containers
-      docker_container:
-        name: "{{ docker_container_name }}"
-        state: absent
-          
-    - name: Remove old images
+
+    - name: Remove old Frontend image
+      command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Backend image
+      command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Prune dangling images
       command: docker image prune -af
-     
-    - name: Build Docker image
+
+    - name: Build Frontend Docker image
       docker_image:
-        name: "{{ docker_image_name }}:{{ docker_image_tag }}"
+        name: "{{ docker_image_frontend }}:{{ docker_image_tag }}"
         source: build
-        build: 
-          path: /opt/compare-app
+        build:
+          path: "{{ frontend_build_path }}"
 
-    - name: Push Docker image to DockerHub
-      command: docker push {{ docker_image_name }}:{{ docker_image_tag }}
+    - name: Push Frontend Docker image to DockerHub
+      command: docker push {{ docker_image_frontend }}:{{ docker_image_tag }}
 
-    - name: Logout Dockerhub
+    - name: Build Backend Docker image
+      docker_image:
+        name: "{{ docker_image_backend }}:{{ docker_image_tag }}"
+        source: build
+        build:
+          path: "{{ backend_build_path }}"
+
+    - name: Push Backend Docker image to DockerHub
+      command: docker push {{ docker_image_backend }}:{{ docker_image_tag }}
+
+    - name: Logout DockerHub
       command: docker logout
