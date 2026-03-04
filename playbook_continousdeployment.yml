@@ -1,0 +1,25 @@
+---
+- name: Playbook_Continous_Deployment 
+  hosts: DockerSRV
+  become: yes
+  gather_facts: no
+  
+  vars:
+    docker_image_name: "acmanso/compare-appv2"
+    docker_container_name: "compare-appv2-container"
+    docker_image_tag: "latest"
+  
+  tasks:
+    - name: Pull latest docker image  
+      docker_image:
+        name: "{{ docker_image_name }}:{{ docker_image_tag }}"
+        source: pull
+    
+    - name: Create new container
+      docker_container:
+        name: "{{ docker_container_name }}"
+        image: "{{ docker_image_name }}:{{ docker_image_tag }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "8083:8080"
