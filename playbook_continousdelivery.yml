@@ -1,0 +1,51 @@
+---
+- name: Playbook_Continous_Delivery
+  hosts: DockerSRV
+  become: yes
+  gather_facts: no
+
+  vars:
+    docker_image_frontend: "acmanso/frontend"
+    docker_image_backend:  "acmanso/backend"
+    docker_image_tag:      "{{ IMAGE_TAG }}"
+    frontend_build_path:   /opt/Fullstackproject/frontend
+    backend_build_path:    /opt/Fullstackproject/backend
+
+  tasks:
+
+    - name: Login DockerHub
+      command: docker login -u "{{ DOCKER_USER }}" -p "{{ DOCKER_PASS }}"
+
+    - name: Remove old Frontend image
+      command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Backend image
+      command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Prune dangling images
+      command: docker image prune -af
+
+    - name: Build Frontend Docker image
+      docker_image:
+        name: "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+        source: build
+        build:
+          path: "{{ frontend_build_path }}"
+
+    - name: Push Frontend Docker image to DockerHub
+      command: docker push {{ docker_image_frontend }}:{{ docker_image_tag }}
+
+    - name: Build Backend Docker image
+      docker_image:
+        name: "{{ docker_image_backend }}:{{ docker_image_tag }}"
+        source: build
+        build:
+          path: "{{ backend_build_path }}"
+
+    - name: Push Backend Docker image to DockerHub
+      command: docker push {{ docker_image_backend }}:{{ docker_image_tag }}
+
+    - name: Logout DockerHub
+      command: docker logout
