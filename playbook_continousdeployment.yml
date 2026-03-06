@@ -1,0 +1,106 @@
+---
+############################################
+# Deploy Fullstack Application to Kubernetes
+############################################
+- name: Deploy Fullstack Application to Kubernetes
+  hosts: kubernetes
+  become: true
+  environment:
+    KUBECONFIG: /var/lib/jenkins/.kube/config
+  vars:
+    kubeconfig_path: "/var/lib/jenkins/.kube/config"
+    image_tag: "{{ image_tag }}"
+
+  tasks:
+
+    ###################################
+    # Secret MySQL
+    ###################################
+    - name: Apply MySQL Secret
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: k8s/mysql-secret.yaml
+
+    ###################################
+    # Storage MySQL (jamais supprimé)
+    ###################################
+    - name: Apply MySQL PV and PVC
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: k8s/mysql-pvc.yaml
+
+    ###################################
+    # MySQL Deployment
+    ###################################
+    - name: Apply MySQL Deployment
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: k8s/mysql-deployment.yaml
+
+    - name: Wait for MySQL to be ready
+      command: >
+        kubectl rollout status deployment/mysql --timeout=120s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      retries: 3
+      delay: 10
+      register: mysql_status
+      until: mysql_status.rc == 0
+
+    - name: Extra wait for MySQL initialization
+      pause:
+        seconds: 15
+
+    ###################################
+    # Backend (image_tag dynamique)
+    ###################################
+    - name: Deploy Backend
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition: "{{ lookup('template', 'k8s/deployment-backend.yaml') }}"
+
+    - name: Wait for Backend to be ready
+      command: >
+        kubectl rollout status deployment/backend --timeout=120s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      retries: 3
+      delay: 10
+      register: backend_status
+      until: backend_status.rc == 0
+
+    ###################################
+    # Frontend (image_tag dynamique)
+    ###################################
+    - name: Deploy Frontend
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        definition: "{{ lookup('template', 'k8s/deployment-front.yaml') }}"
+
+    - name: Wait for Frontend to be ready
+      command: >
+        kubectl rollout status deployment/frontend --timeout=60s
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+
+    
+    - name: Apply Ingress
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: k8s/ingress.yaml
+
+    - name: Get all pods status
+      command: kubectl get pods
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
+      register: pods_output
+
+    - name: Print pods status
+      debug:
+        msg: "{{ pods_output.stdout }}"
