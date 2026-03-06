@@ -1,4 +1,3 @@
- kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -12,5 +11,4 @@ spec:
       storage: 5Gi
   storageClassName: local-storage
   volumeName: mysql-pv
-EOF
 
