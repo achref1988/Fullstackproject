@@ -1,7 +1,4 @@
 ---
-############################################
-# Deploy Fullstack Application to Kubernetes
-############################################
 - name: Deploy Fullstack Application to Kubernetes
   hosts: kubernetes
   become: true
@@ -10,30 +7,26 @@
   vars:
     kubeconfig_path: "/var/lib/jenkins/.kube/config"
     image_tag: "{{ image_tag }}"
-
   tasks:
 
-    ###################################
-    # Secret MySQL
-    ###################################
     - name: Apply MySQL Secret
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
         state: present
         src: k8s/mysql-secret.yaml
 
-    ###################################
-    # Storage MySQL (jamais supprimé)
-    ###################################
-    - name: Apply MySQL PV and PVC
+    - name: Apply MySQL PV
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: present
+        src: k8s/mysql-pv.yaml
+
+    - name: Apply MySQL PVC
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
         state: present
         src: k8s/mysql-pvc.yaml
 
-    ###################################
-    # MySQL Deployment
-    ###################################
     - name: Apply MySQL Deployment
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
@@ -54,9 +47,6 @@
       pause:
         seconds: 15
 
-    ###################################
-    # Backend (image_tag dynamique)
-    ###################################
     - name: Deploy Backend
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
@@ -73,9 +63,6 @@
       register: backend_status
       until: backend_status.rc == 0
 
-    ###################################
-    # Frontend (image_tag dynamique)
-    ###################################
     - name: Deploy Frontend
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
@@ -88,7 +75,6 @@
       environment:
         KUBECONFIG: "{{ kubeconfig_path }}"
 
-    
     - name: Apply Ingress
       kubernetes.core.k8s:
         kubeconfig: "{{ kubeconfig_path }}"
