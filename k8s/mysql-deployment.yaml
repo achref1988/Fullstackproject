@@ -1,13 +1,3 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-secret
-type: Opaque
-data:
-  mysql-root-password: cm9vdA==
-  mysql-user: bXlkYg==
-  mysql-password: cGFzc3dvcmQx
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +19,11 @@ spec:
       containers:
         - name: mysql
           image: mysql:5.6
+          args:
+            - --innodb-buffer-pool-size=64M
+            - --innodb-log-file-size=32M
+            - --max-connections=50
+            - --performance-schema=OFF
           ports:
             - containerPort: 3306
           env:
@@ -49,14 +44,20 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: mysql-password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql
       volumes:
         - name: mysql-storage
-          hostPath:
-            path: /data/mysql
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: mysql-pvc
 ---
 apiVersion: v1
 kind: Service
