@@ -11,4 +11,3 @@ spec:
       storage: 5Gi
   storageClassName: local-storage
   volumeName: mysql-pv
-
