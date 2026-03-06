@@ -18,7 +18,7 @@ spec:
         kubernetes.io/hostname: worker1
       containers:
         - name: mysql
-          image: mysql:5.6
+          image: mysql:8.0
           args:
             - --innodb-buffer-pool-size=64M
             - --innodb-log-file-size=32M
@@ -71,3 +71,4 @@ spec:
       port: 3306
       targetPort: 3306
   type: ClusterIP
+
