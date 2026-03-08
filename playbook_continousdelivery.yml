@@ -1,6 +1,6 @@
 ---
 - name: Playbook_Continous_Delivery
-  hosts: DockerSRV
+  hosts: localhost
   become: yes
   gather_facts: no
 
