@@ -1,48 +1,36 @@
-
-apiVersion: apps/v1        
-kind: Deployment           
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: frontend           
+  name: frontend
   labels:
-    app: frontend          
-
+    app: frontend
 spec:
-  replicas: 2              
-  
+  replicas: 1
   selector:
     matchLabels:
-      app: frontend        
-
-  template:                
+      app: frontend
+  template:
     metadata:
       labels:
-        app: frontend      
-
+        app: frontend
     spec:
       containers:
-        - name: frontend                    
-          image: acmanso/frontend:latest
-         
+        - name: frontend
+          image: acmanso/frontend:{{ image_tag }}
+          imagePullPolicy: Always
           ports:
-            - containerPort: 80           
-
+            - containerPort: 80
 ---
 apiVersion: v1
-kind: Service              
+kind: Service
 metadata:
-  name: frontend-service   
-
+  name: frontend-service
 spec:
   selector:
-    app: frontend          
-
+    app: frontend
   ports:
     - protocol: TCP
-      port: 80             
-      targetPort: 80   
+      port: 80
+      targetPort: 80
       nodePort: 30100
-
-  type: NodePort       
-                           
-
-
+  type: NodePort
