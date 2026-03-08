@@ -14,8 +14,6 @@ spec:
       labels:
         app: mysql
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: worker1
       containers:
         - name: mysql
           image: mysql:8.0
@@ -71,4 +69,3 @@ spec:
       port: 3306
       targetPort: 3306
   type: ClusterIP
-
