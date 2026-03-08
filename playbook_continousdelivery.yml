@@ -1,0 +1,70 @@
+---
+- name: Playbook_Continous_Delivery
+  hosts: DockerSRV
+  become: yes
+  gather_facts: no
+
+  vars:
+    docker_image_frontend: "acmanso/frontend"
+    docker_image_backend:  "acmanso/backend"
+    docker_image_tag:      "{{ IMAGE_TAG }}"
+    frontend_build_path:   /opt/Fullstackproject/frontend
+    backend_build_path:    /opt/Fullstackproject/backend
+
+  tasks:
+
+    - name: Login DockerHub
+      command: docker login -u "{{ DOCKER_USER }}" -p "{{ DOCKER_PASS }}"
+
+    - name: Stop and remove Frontend container if exists
+      docker_container:
+        name: frontend-container
+        state: absent
+      ignore_errors: yes
+
+    - name: Stop and remove Backend container if exists
+      docker_container:
+        name: backend-container
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove old Frontend image if exists
+      command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Backend image if exists
+      command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Frontend image if exists
+      command: docker rmi -f "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+    - name: Remove old Backend image if exists
+      command: docker rmi -f "{{ docker_image_backend }}:{{ docker_image_tag }}"
+      ignore_errors: yes
+
+
+    - name: Build Frontend Docker image
+      docker_image:
+        name: "{{ docker_image_frontend }}:{{ docker_image_tag }}"
+        source: build
+        build:
+          path: "{{ frontend_build_path }}"
+
+    - name: Push Frontend Docker image to DockerHub
+      command: docker push {{ docker_image_frontend }}:{{ docker_image_tag }}
+
+    - name: Build Backend Docker image
+      docker_image:
+        name: "{{ docker_image_backend }}:{{ docker_image_tag }}"
+        source: build
+        build:
+          path: "{{ backend_build_path }}"
+
+    - name: Push Backend Docker image to DockerHub
+      command: docker push {{ docker_image_backend }}:{{ docker_image_tag }}
+
+  
+    - name: Logout DockerHub
+      command: docker logout
