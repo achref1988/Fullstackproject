@@ -25,71 +25,121 @@ pipeline {
             }
         }
 
-        stage('Build Backend') {
-            steps {
-                script {
-                    try {
-                        dir('backend') {
-                            sh 'mvn clean package -DskipTests=true'
-                        }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Build', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Build', 'FAILED')
-                        throw e
-                    }
-                }
-            }
-        }
-
-        stage('Test Backend') {
-            steps {
-                script {
-                    try {
-                        dir('backend') {
-                            sh 'mvn test -DskipTests=true'
-                        }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'FAILED')
-                        throw e
-                    }
-                }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    try {
-                        dir('backend') {
-                            withSonarQubeEnv('sonarqube') {
-                                sh '''mvn sonar:sonar \
-                                    -Dsonar.projectKey=Fullstackproject \
-                                    -Dsonar.projectName=Fullstackproject \
-                                    -Dsonar.login=sqa_0846b472542dae98957418e79d8ff1d3772336cd \
-                                    -s /etc/maven/settings.xml'''
+        // Build Backend + Build Frontend en même temps
+        stage('Build') {
+            parallel {
+                stage('Build Backend') {
+                    steps {
+                        script {
+                            try {
+                                dir('backend') {
+                                    sh 'mvn clean package -DskipTests=true'
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Build', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Build', 'FAILED')
+                                throw e
                             }
                         }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Sonar', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Sonar', 'FAILED')
-                        throw e
+                    }
+                }
+                stage('Test Backend') {
+                    steps {
+                        script {
+                            try {
+                                dir('backend') {
+                                    sh 'mvn test -DskipTests=true'
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'FAILED')
+                                throw e
+                            }
+                        }
                     }
                 }
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                script {
-                    try {
-                        timeout(time: 5, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
+        //  SonarQube Backend + SonarQube Frontend en même temps
+        stage('SonarQube Analysis') {
+            parallel {
+                stage('SonarQube Backend') {
+                    steps {
+                        script {
+                            try {
+                                dir('backend') {
+                                    withSonarQubeEnv('sonarqube') {
+                                        sh '''mvn sonar:sonar \
+                                            -Dsonar.projectKey=Fullstackproject \
+                                            -Dsonar.projectName=Fullstackproject \
+                                            -Dsonar.login=sqa_0846b472542dae98957418e79d8ff1d3772336cd \
+                                            -s /etc/maven/settings.xml'''
+                                    }
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Sonar', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Sonar', 'FAILED')
+                                throw e
+                            }
                         }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Quality', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'Quality', 'FAILED')
-                        throw e
+                    }
+                }
+                stage('SonarQube Frontend') {
+                    steps {
+                        script {
+                            try {
+                                dir('frontend') {
+                                    withSonarQubeEnv('sonarqube') {
+                                        sh '''mvn sonar:sonar \
+                                            -Dsonar.projectKey=Fullstackproject-frontend \
+                                            -Dsonar.projectName=Fullstackproject-frontend \
+                                            -Dsonar.login=sqa_0846b472542dae98957418e79d8ff1d3772336cd \
+                                            -s /etc/maven/settings.xml'''
+                                    }
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'SonarFront', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'SonarFront', 'FAILED')
+                                throw e
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        //  Quality Gate Backend + Quality Gate Frontend en même temps
+        stage('Quality Gate') {
+            parallel {
+                stage('Quality Gate Backend') {
+                    steps {
+                        script {
+                            try {
+                                timeout(time: 5, unit: 'MINUTES') {
+                                    waitForQualityGate abortPipeline: true
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Quality', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'Quality', 'FAILED')
+                                throw e
+                            }
+                        }
+                    }
+                }
+                stage('Quality Gate Frontend') {
+                    steps {
+                        script {
+                            try {
+                                timeout(time: 5, unit: 'MINUTES') {
+                                    waitForQualityGate abortPipeline: true
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'QualityFront', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'QualityFront', 'FAILED')
+                                throw e
+                            }
+                        }
                     }
                 }
             }
@@ -111,69 +161,72 @@ pipeline {
             }
         }
 
-        stage('Continuous Delivery') {
-            steps {
-                script {
-                    try {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'Dockerhub',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
-                            sh """
-                                ansible-playbook -i inventory.yml playbook_continousdelivery.yml \
-                                    -e "DOCKER_USER=\$DOCKER_USER" \
-                                    -e "DOCKER_PASS=\$DOCKER_PASS" \
-                                    -e "IMAGE_TAG=${IMAGE_TAG}"
-                            """
+        // Continuous Delivery + Upload Frontend to Nexus en même temps
+        stage('Delivery & Nexus Frontend') {
+            parallel {
+                stage('Continuous Delivery') {
+                    steps {
+                        script {
+                            try {
+                                withCredentials([usernamePassword(
+                                    credentialsId: 'Dockerhub',
+                                    usernameVariable: 'DOCKER_USER',
+                                    passwordVariable: 'DOCKER_PASS'
+                                )]) {
+                                    sh """
+                                        ansible-playbook -i inventory.yml playbook_continousdelivery.yml \
+                                            -e "DOCKER_USER=\$DOCKER_USER" \
+                                            -e "DOCKER_PASS=\$DOCKER_PASS" \
+                                            -e "IMAGE_TAG=${IMAGE_TAG}"
+                                    """
+                                }
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'SUCCESS')
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'DockerBack', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'FAILED')
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'DockerBack', 'FAILED')
+                                throw e
+                            }
                         }
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'SUCCESS')
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'DockerBack', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'DockerFront', 'FAILED')
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'DockerBack', 'FAILED')
-                        throw e
+                    }
+                }
+                stage('Upload Frontend to Nexus') {
+                    steps {
+                        script {
+                            try {
+                                dir('frontend') {
+                                    sh 'npm install'
+                                    sh 'npm run build'
+                                    sh "zip -r frontend-${IMAGE_TAG}.zip dist/"
+                                }
+                                nexusArtifactUploader(
+                                    nexusVersion: 'nexus3',
+                                    protocol: 'http',
+                                    nexusUrl: '172.31.0.215:8081',
+                                    repository: 'frontend-raw',
+                                    credentialsId: 'Nexus',
+                                    groupId: 'com.devops',
+                                    version: "0.0.1-${IMAGE_TAG}",
+                                    artifacts: [
+                                        [
+                                            artifactId: 'frontend',
+                                            classifier: '',
+                                            file: "frontend/frontend-${IMAGE_TAG}.zip",
+                                            type: 'zip'
+                                        ]
+                                    ]
+                                )
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'SUCCESS')
+                            } catch (Exception e) {
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'FAILED')
+                                throw e
+                            }
+                        }
                     }
                 }
             }
         }
 
-        stage('Upload Frontend to Nexus') {
-            steps {
-                script {
-                    try {
-                        dir('frontend') {
-                            sh 'npm install'
-                            sh 'npm run build'
-                            sh "zip -r frontend-${IMAGE_TAG}.zip dist/"
-                        }
-                        nexusArtifactUploader(
-                            nexusVersion: 'nexus3',
-                            protocol: 'http',
-                            nexusUrl: '172.31.0.215:8081',
-                            repository: 'frontend-raw',
-                            credentialsId: 'Nexus',
-                            groupId: 'com.devops',
-                            version: "0.0.1-${IMAGE_TAG}",
-                            artifacts: [
-                                [
-                                    artifactId: 'frontend',
-                                    classifier: '',
-                                    file: "frontend/frontend-${IMAGE_TAG}.zip",
-                                    type: 'zip'
-                                ]
-                            ]
-                        )
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'SUCCESS')
-                    } catch (Exception e) {
-                        currentBuild.description = updateStageStatus(currentBuild.description, 'NexusFront', 'FAILED')
-                        throw e
-                    }
-                }
-            }
-        }
-
-        
         stage('Continuous Deployment') {
             steps {
                 script {
@@ -225,17 +278,19 @@ pipeline {
                         </tr>
                     </thead>
                     <tbody>
-                        ${createStageRow('Checkout Code',            statusMap.get('Checkout',     'PENDING'))}
-                        ${createStageRow('Build Backend',            statusMap.get('Build',        'PENDING'))}
-                        ${createStageRow('Test Backend',             statusMap.get('Test',         'PENDING'))}
-                        ${createStageRow('SonarQube Analysis',       statusMap.get('Sonar',        'PENDING'))}
-                        ${createStageRow('Quality Gate',             statusMap.get('Quality',      'PENDING'))}
-                        ${createStageRow('Deploy Backend to Nexus',  statusMap.get('NexusBack',    'PENDING'))}
-                        ${createStageRow('Docker Frontend',          statusMap.get('DockerFront',  'PENDING'))}
-                        ${createStageRow('Upload Frontend to Nexus', statusMap.get('NexusFront',   'PENDING'))}
-                        ${createStageRow('Docker Backend',           statusMap.get('DockerBack',   'PENDING'))}
-                        ${createStageRow('Deploy to Kubernetes',     statusMap.get('Deploy',       'PENDING'))}
-                        ${createStageRow('Verification',             statusMap.get('Verification', 'PENDING'))}
+                        ${createStageRow('Checkout Code',            statusMap.get('Checkout',      'PENDING'))}
+                        ${createStageRow('Build Backend',            statusMap.get('Build',         'PENDING'))}
+                        ${createStageRow('Test Backend',             statusMap.get('Test',          'PENDING'))}
+                        ${createStageRow('SonarQube Backend',        statusMap.get('Sonar',         'PENDING'))}
+                        ${createStageRow('SonarQube Frontend',       statusMap.get('SonarFront',    'PENDING'))}
+                        ${createStageRow('Quality Gate Backend',     statusMap.get('Quality',       'PENDING'))}
+                        ${createStageRow('Quality Gate Frontend',    statusMap.get('QualityFront',  'PENDING'))}
+                        ${createStageRow('Deploy Backend to Nexus',  statusMap.get('NexusBack',     'PENDING'))}
+                        ${createStageRow('Docker Frontend',          statusMap.get('DockerFront',   'PENDING'))}
+                        ${createStageRow('Docker Backend',           statusMap.get('DockerBack',    'PENDING'))}
+                        ${createStageRow('Upload Frontend to Nexus', statusMap.get('NexusFront',    'PENDING'))}
+                        ${createStageRow('Deploy to Kubernetes',     statusMap.get('Deploy',        'PENDING'))}
+                        ${createStageRow('Verification',             statusMap.get('Verification',  'PENDING'))}
                     </tbody>
                 </table>
                 """
