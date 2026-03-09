@@ -25,7 +25,6 @@ pipeline {
             }
         }
 
-        // Build Backend + Build Frontend en même temps
         stage('Build') {
             parallel {
                 stage('Build Backend') {
@@ -43,16 +42,18 @@ pipeline {
                         }
                     }
                 }
-                stage('Test Backend') {
+                
+                stage('Build Frontend') {
                     steps {
                         script {
                             try {
-                                dir('backend') {
-                                    sh 'mvn test -DskipTests=true'
+                                dir('frontend') {
+                                    sh 'npm install'
+                                    sh 'npm run build'
                                 }
-                                currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'SUCCESS')
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'BuildFront', 'SUCCESS')
                             } catch (Exception e) {
-                                currentBuild.description = updateStageStatus(currentBuild.description, 'Test', 'FAILED')
+                                currentBuild.description = updateStageStatus(currentBuild.description, 'BuildFront', 'FAILED')
                                 throw e
                             }
                         }
@@ -61,7 +62,7 @@ pipeline {
             }
         }
 
-        //  SonarQube Backend + SonarQube Frontend en même temps
+        //  SonarQube Backend + SonarQube Frontend
         stage('SonarQube Analysis') {
             parallel {
                 stage('SonarQube Backend') {
@@ -109,7 +110,7 @@ pipeline {
             }
         }
 
-        //  Quality Gate Backend + Quality Gate Frontend en même temps
+        //  Quality Gate Backend + Quality Gate Frontend
         stage('Quality Gate') {
             parallel {
                 stage('Quality Gate Backend') {
@@ -161,7 +162,7 @@ pipeline {
             }
         }
 
-        // Continuous Delivery + Upload Frontend to Nexus en même temps
+        // Continuous Delivery + Upload Frontend to Nexus
         stage('Delivery & Nexus Frontend') {
             parallel {
                 stage('Continuous Delivery') {
@@ -190,13 +191,12 @@ pipeline {
                         }
                     }
                 }
+                
                 stage('Upload Frontend to Nexus') {
                     steps {
                         script {
                             try {
                                 dir('frontend') {
-                                    sh 'npm install'
-                                    sh 'npm run build'
                                     sh "zip -r frontend-${IMAGE_TAG}.zip dist/"
                                 }
                                 nexusArtifactUploader(
@@ -280,7 +280,7 @@ pipeline {
                     <tbody>
                         ${createStageRow('Checkout Code',            statusMap.get('Checkout',      'PENDING'))}
                         ${createStageRow('Build Backend',            statusMap.get('Build',         'PENDING'))}
-                        ${createStageRow('Test Backend',             statusMap.get('Test',          'PENDING'))}
+                        ${createStageRow('Build Frontend',           statusMap.get('BuildFront',    'PENDING'))}
                         ${createStageRow('SonarQube Backend',        statusMap.get('Sonar',         'PENDING'))}
                         ${createStageRow('SonarQube Frontend',       statusMap.get('SonarFront',    'PENDING'))}
                         ${createStageRow('Quality Gate Backend',     statusMap.get('Quality',       'PENDING'))}
