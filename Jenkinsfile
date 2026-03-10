@@ -190,19 +190,6 @@ pipeline {
                  
                         withKubeConfig([credentialsId: 'kubeconfig']) {
 
-                            // DELETE OLD DEPLOYMENTS & SERVICES
-                            sh 'kubectl delete deployment frontend            --ignore-not-found=true'
-                            sh 'kubectl delete deployment backend             --ignore-not-found=true'
-                            sh 'kubectl delete deployment mysql               --ignore-not-found=true'
-                            sh 'kubectl delete service   frontend-service     --ignore-not-found=true'
-                            sh 'kubectl delete service   backend-service      --ignore-not-found=true'
-                            sh 'kubectl delete service   mysql-service        --ignore-not-found=true'
-
-                            // WAIT FOR PODS TO TERMINATE
-                            sh 'kubectl wait --for=delete pod -l app=frontend --timeout=60s || true'
-                            sh 'kubectl wait --for=delete pod -l app=backend  --timeout=60s || true'
-                            sh 'kubectl wait --for=delete pod -l app=mysql    --timeout=60s || true'
-
                             // DEPLOY FRESH
                             sh 'kubectl apply -f k8s/mysql-secret.yaml'
                             sh 'kubectl apply -f k8s/mysql-deployment.yaml'
